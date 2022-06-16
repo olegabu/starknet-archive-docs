@@ -5,7 +5,7 @@ developers face: the data their smart contracts produce lie in transaction input
 These data need to be gathered, decoded and interpreted for analysis (think an up to date TVL) 
 and by end users (like a daily balance). 
 
-This problem is solved by services called **indexers** that usually listen 
+This problem is solved by services called **indexers** that listen 
 to blockchain events specified by developers then run code over them to parse and interpret them. 
 The code to interpret events is usually written in high level languages by the DApp developers themselves, 
 run by third parties and sometimes in a decentralized manner.
@@ -15,17 +15,11 @@ While this multi step approach gets the job done it involves effort better spend
 Our approach is a centralised service offering already decoded and normalized data ready for interpretation, 
 so that the DApp developers can start using the data right away without the need to write extra code or run several processes and involve third party indexers.
 
-We invite you to a sneak preview of this service available in a GraphQL query studio at 
-
-
+We invite you to a sneak preview of this service available in a GraphQL query studio at [http://54.80.141.84](http://54.80.141.84)
 
 Below are example queries demonstrating its basic capabilities. 
 
 Much more to come: custom functions, triggers, events, remote schemas. Stay tuned. 
-
-# GraphQL Queries
-
-Below are some of the example queries that show 
 
 ## Input and event data decoded as per contract abi
 
@@ -41,7 +35,6 @@ query raw_block {
 
 The raw block has transaction inputs and event payloads in binary form which is hard to interpret.
 ```json
-...
             {
                 "type": "INVOKE_FUNCTION",
                 "max_fee": "0x0",
@@ -55,8 +48,8 @@ The raw block has transaction inputs and event payloads in binary form which is 
                   "0x64"
                 ]
 }
-...
-
+```
+```json
 "events": [
               {
                 "data": [
@@ -71,7 +64,6 @@ The raw block has transaction inputs and event payloads in binary form which is 
                 "from_address": "0x4e34321e0bce0e4ff8ff0bcb3a9a030d423bca29a9d99cbcdd60edb9a2bf03a"
               }
             ],
-...
 ```
 
 Now let's look at the same block parsed and decoded (most fields omitted for brevity).
@@ -174,7 +166,7 @@ But you are probably interested in events emitted by your own contract.
 Let's narrow down to this query for `Mint` events of contract `0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733`:
 ```graphql
 query events {
-  event(where: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}, limit: 10, order_by: {id: desc}) {
+  event(where: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}, limit: 1) {
     name
     arguments {
       name
@@ -186,15 +178,54 @@ query events {
   }
 }
 ```
+returns the event data decoded:
+```json
+{
+  "data": {
+    "event": [
+      {
+        "name": "Mint",
+        "arguments": [
+          {
+            "name": "sender",
+            "type": "felt",
+            "value": "0x1ea2f12a70ad6a052f99a49dace349996a8e968a0d6d4e9ec34e0991e6d5e5e",
+            "decimal": "866079946690358847859985129991514658898248253189226492476287621475869744734"
+          },
+          {
+            "name": "amount0",
+            "type": "Uint256",
+            "value": {
+              "low": "0x52b7d2dcc80cd2e4000000",
+              "high": "0x0"
+            },
+            "decimal": "100000000000000000000000000"
+          },
+          {
+            "name": "amount1",
+            "type": "Uint256",
+            "value": {
+              "low": "0x2d79883d2000",
+              "high": "0x0"
+            },
+            "decimal": "50000000000000"
+          }
+        ],
+        "transaction_hash": "0x521e56da1f33412f2f5e81dc585683c47b19783995aa3ebdcd84f5739cea489"
+      }
+    ]
+  }
+}
+```
 
-## Handling proxy events
+## Handling proxy contracts
 
 What if you use proxy contracts? Their implementation contracts change and so do their abi. 
-Your data are still decoded, but by the implementation contract's abi. 
+The data can still be decoded, but by the implementation contract's abi. 
 
 This queries for 3 transactions sent to a proxy contract  `0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8`.
 You see the first `DEPLOY` transaction setting the implementation contract address to `0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704`.
-The same query gets abi for both proxy and implementation contracts.
+Note the same query gets the abi for both proxy and implementation contracts.
 ```graphql
 query proxy_inputs {
   transaction(limit: 3, where: {contract_address: {_eq: "0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8"}}) {
@@ -211,11 +242,8 @@ query proxy_inputs {
   }
 }
 ```
-
-Note for example the input `call_array` of type `CallArray` is defined in the implementation not proxy abi, and is decoded properly. 
+See in the query results the input `call_array` of type `CallArray` is defined in the implementation not proxy abi, and is decoded properly. 
 ```json
-...
-
 "inputs": [
           {
             "type": "CallArray[1]",
@@ -245,7 +273,6 @@ Note for example the input `call_array` of type `CallArray` is defined in the im
           }
         ],
         "function": "__execute__"
-...
 
 "contract_address": "0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704",
         "raw": [
@@ -282,8 +309,10 @@ Note for example the input `call_array` of type `CallArray` is defined in the im
 
 ## Aggregation queries
 
-So you can query for all your events and function calls, but how do you interpret these data? Let's say you want to derive a number from some of your events, 
-for example, calculate Total Value Locked, which is a sum of arguments `amount0` of all `Mint` events. You can certainly query for the values:
+So you can query for all your events and function calls, but how do you interpret them? Let's say you want to derive a number from some of your events, 
+for example, to calculate Total Value Locked, which is a sum of arguments `amount0` of all `Mint` events. 
+
+You can certainly query for the values:
 ```graphql
 query Mint_amount0 {
   argument(where: {name: {_eq: "amount0"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}, limit: 10) {
@@ -294,7 +323,6 @@ query Mint_amount0 {
   }
 }
 ```
-
 See the values as `Uint256` struct and also conveniently converted into decimals.
 ```json
 "argument": [
@@ -361,7 +389,7 @@ This query returns the total sum (TVL) as well as results of other aggregation f
 What if filters over chain data and aggregation queries still don't give you the desired results? 
 Then use the full power and flexibility of **SQL**: create custom views and functions and query them.
 Let's say you want to calculate daily `Mint` volume of your contract. 
-This requires summing over your events in all blocks per day derived from the block's timestamp.
+This requires summing over your events in all blocks per day which is derived from a block's timestamp.
 ```graphql
 query daily_mint {
   daily_mint {
@@ -423,7 +451,7 @@ query MyQuery {
   }
 }
 ```
-calculating total transactions per day:
+that calculates total transactions per day:
 ```json
 {
   "data": {
@@ -442,7 +470,7 @@ calculating total transactions per day:
       },
  
 ```
-Created from this view:
+It selects data from this database view:
 ```sql
 create recursive view daily_transactions (count, date) as
   select count(t.transaction_hash), to_timestamp(b.timestamp)::date as dt from transaction as t
@@ -480,8 +508,7 @@ returning functions called the most:
       {
         "count": "275052",
         "name": "initialize"
-      },
-
+      }
 ```
 Created from this view:
 ```sql
@@ -502,12 +529,4 @@ SELECT
   top_functions.count
 FROM
   top_functions;
-```
-
-```bash
-gq https://starknet-archive.hasura.app/v1/graphql -H 'x-hasura-admin-secret: 6Knsw4W8DgfxqJcipnf5r1SVmdg2I3PU4EBm1tU4ZVnVFD5S7nmry2A9vnbizFbS' -i
-```
-
-```bash
-curl https://starknet-archive.hasura.app/api/rest/my_events2 -H 'x-hasura-admin-secret: 6Knsw4W8DgfxqJcipnf5r1SVmdg2I3PU4EBm1tU4ZVnVFD5S7nmry2A9vnbizFbS' | jq
 ```
