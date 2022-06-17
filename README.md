@@ -3,25 +3,25 @@
 **Starknet Indexer** and **starknet-archive** are working titles for the software that aims to solve the problem most DApp 
 developers face: the data their smart contracts produce is buried in transaction inputs and events scattered in blocks. 
 These data need to be gathered, decoded and interpreted for analysis (think an up to date TVL) 
-and by to be presented to the end users. 
+and to be presented to the end users. 
 
 This problem is solved by services called **indexers** that listen to blockchain events specified by DApp developers 
-then run code over them to parse and interpret. The code to parse events is usually written by the DApp developers themselves, 
+then run code to parse out and interpret their data. The code to parse events is usually written by the DApp developers themselves, 
 run by third parties and sometimes in a decentralized manner.
 
 While this multi step approach gets the job done it requires development effort better spend on the DApp itself, 
 and creates friction between the many parts of the process.
 
-Our approach is a centralised service offering already decoded and normalized data ready for consumption interpretation. 
-The DApp developers can start using the data right away without the need to write extra code or run several processes 
-and involve third party indexers.
+Our approach is a centralised service offering already decoded and normalized data ready for consumption and interpretation. 
+Developers can start using the data right away without the need to write extra code or run several processes 
+or involve third party indexers.
 
 We invite you to a sneak preview of this service available in a GraphQL query console at 
 [http://54.80.141.84](http://54.80.141.84)
 
 Below are example queries demonstrating its basic capabilities. 
 
-Stay tuned as there's much more to come: direct sql queries, custom views and functions, triggers, events.
+Stay tuned as there's more to come: direct sql queries, custom views and functions, triggers, events.
 
 ## Quick start 
 
@@ -29,8 +29,8 @@ A [GraphQL console](http://54.80.141.84) is open to developers to try out GraphQ
 
 ![Screenshot-graphiql](https://github.com/olegabu/starknet-archive-docs/blob/main/Screenshot-graphiql.png?raw=true "GraphQL console")
 
-Use the Explorer pane on the left to put together a query by selecting fields and filter parameters.
-Or write queries directly into the middle pane.
+Use the Explorer pane on the left to put together a query by selecting fields and filter parameters, 
+or write queries directly into the middle pane.
 
 You can combine queries to return all the data you're looking for in one shot. 
 This query requests three `Mint` events and all `DEPLOY` transactions together with their inputs in block 100000.
@@ -60,7 +60,7 @@ query mint_and_deploy_100000 {
 }
 ```
 
-You can also get data directly from the http endpoint. Using the query above:
+You can also get results directly from the http endpoint. Using the query above:
 ```bash
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query mint_and_deploy_100000 { event(where: {name: {_eq: \"Mint\"}, transmitter_contract: {_eq: \"0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\"}}, limit: 3) { name arguments { name type value decimal } transaction_hash } block(where: {block_number: {_eq: 100000}}) { transactions(where: {type: {_eq: \"DEPLOY\"}}) { function entry_point_selector inputs { name type value } } }}"}'
 ```  
@@ -70,7 +70,7 @@ curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query 
 Let's get the whole block with its transactions and events. It may be familiar to you as a common query to the chain API. 
 Paste this into the GraphQL query window.
 ```graphql
-query raw_block {
+{
   raw_block_by_pk(block_number: 100000) {
     raw
   }
@@ -115,9 +115,9 @@ Event payload is in bulk as well.
 }
 ```
 
-Now let's look at the same block parsed and decoded. Try this query (most fields omitted for brevity).
+Now let's look at the same block parsed and decoded. Try this query (which omits most fields for brevity).
 ```graphql
-query block {
+{
   block(where: {block_number: {_eq: 100000}}) {
     transactions {
       function
@@ -176,7 +176,7 @@ Transaction functions and their inputs are decoded using the contract's abi: see
   }
 ``` 
 
-Events are also decoded: see `Transfer` and its argument `tokenId` as `Uint256`, note it is represented in hex and in decimal.
+Events are also decoded: see `Transfer` and its argument `tokenId` as `Uint256`, note it is represented both in hex and in decimal.
 ```json
 {
 "events": [
@@ -215,6 +215,8 @@ While this is useful to explore, can you build analytics tools or a front end wi
 Yes, you can make a direct http call and consume query results by other applications. 
 Your development process may start with you designing queries in the console, combining and refining them. 
 Once you figured out how to collect all the data you need, you can incorporate these query calls into your DApp frontend. 
+
+This is a direct http call with our query. 
 ```bash
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query { block(where: {block_number: {_eq: 100000}}) { transactions { function entry_point_selector inputs { name type value } events { name transmitter_contract arguments { name type value decimal } } } }}"}'
 ```
@@ -222,9 +224,9 @@ curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query 
 ## Querying your own events
 
 You are probably interested not in whole blocks but in events emitted by your own contract. 
-Let's narrow down to this query for `Mint` events of contract `0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733`, and limit it to one result for brevity.
+Let's narrow down with this query for `Mint` events of contract `0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733`, limited to one result for brevity.
 ```graphql
-query events {
+{
   event(where: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}, limit: 1) {
     name
     arguments {
@@ -287,7 +289,7 @@ curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query 
 
 If the data you're interested in lies inside json, you can get to it by specifying a path to this field.
 
-This queries for transaction inputs `index_and_x` defined as a tuple.
+This queries for transaction inputs `index_and_x` defined as a struct.
 ```graphql
 {
   input(where: {name: {_eq: "index_and_x"}, transaction: {contract_address: {_eq: "0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5"}}}, limit: 1) {
@@ -296,7 +298,7 @@ This queries for transaction inputs `index_and_x` defined as a tuple.
 }
 ```
 
-Returns json values of `index_and_x`.
+Returns a value of `index_and_x` in json.
 ```json
 {
   "data": {
@@ -337,7 +339,7 @@ Returns bare `y` values of `index_and_x`.
 }
 ```
 
-To demonstrate, let's request this contract's abi by this query.
+For illustration, let's request our contract's abi by this query.
 ```graphql
 {
   raw_abi_by_pk(contract_address: "0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5") {
@@ -346,7 +348,7 @@ To demonstrate, let's request this contract's abi by this query.
 }
 ```
 
-Here's the definition of `index_and_x` that shows how to get the second part of tuple `(x : felt, y : felt)` by `path: "values[1]"`
+Here's the definition of `index_and_x` that shows how to get the second part of the tuple `values(x : felt, y : felt)` by `path: "values[1]"`
 ```json
 {
   "data": {
@@ -375,14 +377,14 @@ Here's the definition of `index_and_x` that shows how to get the second part of 
 
 ## Handling proxy contracts
 
-What if you use proxy contracts? Their implementation contracts change and so do their abi. 
+Do you use proxy contracts? Their implementation contracts change and so do their abi. 
 While this may be challenging, the data can still be decoded, by the implementation contract's abi. 
 
 This query requests three transactions sent to a proxy contract  `0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8`.
 You see the first `DEPLOY` transaction setting the implementation contract address to `0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704`.
 Note the same query gets the abi for both proxy and implementation contracts, for demonstration.
 ```graphql
-query proxy_inputs {
+{
   transaction(limit: 3, where: {contract_address: {_eq: "0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8"}}) {
     inputs {
       type
@@ -434,7 +436,7 @@ See the input `call_array` of type `CallArray` is defined in the implementation,
 }
 ```
 
-Yet `call_array` is still decoded properly as the function's input. 
+Yet `call_array` is still decoded properly as `__execute__` function's input `call_array`. 
 ```json
 {
 "inputs": [
@@ -471,13 +473,13 @@ Yet `call_array` is still decoded properly as the function's input.
 
 ## Aggregation queries
 
-Now you can query for all your events and function calls, but how do you interpret them? 
+Now you can query for all your inputs and events, but how do you interpret them? 
 Let's say you want to derive a number from some of your events, for example, to calculate Total Value Locked, 
 which is a sum of arguments `amount0` of all `Mint` events. 
 
-You can certainly query for the values.
+You can certainly query for their bare values.
 ```graphql
-query Mint_amount0 {
+{
   argument(where: {name: {_eq: "amount0"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}, limit: 10) {
     type
     value
@@ -489,23 +491,25 @@ query Mint_amount0 {
 
 See the values as `Uint256` struct and also conveniently converted into decimals.
 ```json
-"argument": [
-      {
-        "type": "Uint256",
-        "value": {
-          "low": "0x52b7d2dcc80cd2e4000000",
-          "high": "0x0"
-        },
-        "name": "amount0",
-        "decimal": "100000000000000000000000000"
-      },
+{
+    "type": "Uint256",
+    "value": {
+      "low": "0x52b7d2dcc80cd2e4000000",
+      "high": "0x0"
+    },
+    "name": "amount0",
+    "decimal": "100000000000000000000000000"
+}
 ```
 
 You can consume this query's results by your software and sum it up, like some other indexers let you do.
 But here, you can run an **aggregation** query that sums over the values and returns the final result, without much effort.
-That's why the values were converted into decimals: `numeric 78` database types large enough to support Uint256 and arithmetic operations over them.
+
+That's why the values were converted into decimals: `numeric 78` database types are large enough to support Uint256 and arithmetic operations over them.
+
+This query aggregates decimal values of `amount0` arguments of all `Mint` events.
 ```graphql
-query TVL {
+{
   argument_aggregate(where: {name: {_eq: "amount0"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}) {
     aggregate {
       sum {
@@ -525,7 +529,7 @@ query TVL {
 }
 ```
 
-This query returns the total sum (TVL) as well as results of other aggregation functions: min, max, avg.
+Returns the total sum (TVL) as well as results of other aggregation functions: min, max, avg.
 ```json
 {
   "data": {
@@ -551,13 +555,15 @@ This query returns the total sum (TVL) as well as results of other aggregation f
 
 ## Complex queries
 
-What if filters over chain data and aggregation queries still don't give you the desired data? 
+What if filters and aggregation queries still don't give you the desired data? 
 Then use the full power and flexibility of **SQL**: create custom views and functions and query them.
 Let's say you want to calculate the daily `Mint` volume of your contract. 
 This requires summing over your events in all blocks per day, which is derived from the block's timestamp.
+
+This query calls a custom database view `daily_mint`.
 ```graphql
-query {
-  daily_mint {
+{
+  daily_mint(limit: 3) {
     dt
     mint_amount0
   }
@@ -570,24 +576,20 @@ Returns daily sums:
   "data": {
     "daily_mint": [
       {
-        "dt": "2022-05-26",
-        "mint_amount0": "996943538933314245382368"
+        "dt": "2022-06-08",
+        "mint_amount0": "1079024791522862986420035"
       },
       {
-        "dt": "2022-05-25",
-        "mint_amount0": "15916292569039569873451454"
+        "dt": "2022-06-07",
+        "mint_amount0": "1406494987101656904988874"
       },
       {
-        "dt": "2022-05-24",
-        "mint_amount0": "1012580148979965943271803"
-      },
-      {
-        "dt": "2022-05-23",
-        "mint_amount0": "847127202523304463244865"
+        "dt": "2022-06-06",
+        "mint_amount0": "1994302239023862329983776"
       }
     ]
   }
-} 
+}
 ```
 
 The query was created from this database view that sums over `Mint` event arguments grouped per day.
@@ -601,7 +603,7 @@ group by dt order by dt desc;
 
 Here's another example query that calculates total transactions per day.
 ```graphql
-query {
+{
   daily_transactions(limit: 3) {
     count
     date
@@ -638,54 +640,55 @@ select count(t.transaction_hash), to_timestamp(b.timestamp)::date as dt from tra
 left join block b on t.block_number = b.block_number
 group by dt order by dt desc;
 ```
-Request all transactions count to date by a direct http call:
+
+And just like before you can request all transaction counts to date by a direct http call:
 ```bash
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query {daily_transactions {count date}}"}'
 ```
 
 Another one for the mix
 ```graphql
-query {
-  top_functions {
+{
+  top_functions(limit: 4) {
     count
     name
   }
 }
 ```
-returning functions called the most:
+returning four functions called the most:
 ```json
 {
   "data": {
     "top_functions": [
       {
-        "count": "2031870",
+        "count": "2388068",
         "name": "__execute__"
       },
       {
-        "count": "1408924",
+        "count": "1414978",
         "name": "execute"
       },
       {
-        "count": "468926",
+        "count": "536120",
         "name": "constructor"
       },
       {
-        "count": "275052",
+        "count": "322249",
         "name": "initialize"
       }
     ]
   }
 }
 ```
-Created from this view:
+was created from this view:
 ```sql
 create recursive view top_functions (function, ct) as
 select t.function, count(t.function) ct from transaction t group by t.function order by ct desc;
 ```
 
-The above examples are rather simple but show that you can use full fledged SQL queries which can be rather complex 
+The above examples show that you can use full fledged SQL queries which can be rather complex 
 and can return, aggregate and calculate over any data you're interested in.
 
 In most cases no separate indexer process is needed to interpret your data. If however you want to do something that SQL, 
-even with custom views and functions cannot, query for your specific data and consume the results by a your own process 
+even with custom views and functions cannot, you can query for specific data and consume the results by a your own process 
 and deal with it.  
