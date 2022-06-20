@@ -17,7 +17,7 @@ Developers can start using the data right away without the need to write extra c
 or involve third party indexers.
 
 We invite you to a sneak preview of this service available in a GraphQL query console at 
-[http://54.80.141.84](http://54.80.141.84)
+[http://starknetindex.com/console](http://starknetindex.com/console).
 
 Below are example queries demonstrating its basic capabilities. 
 
@@ -25,7 +25,7 @@ Stay tuned as there's more to come: direct sql queries, custom views and functio
 
 ## Quick start 
 
-A [GraphQL console](http://54.80.141.84) is open to developers to try out GraphQL queries for events, transactions and their decoded inputs.
+A [GraphQL console](http://starknetindex.com/console) is open to developers to try out GraphQL queries for events, transactions and their decoded inputs.
 
 ![Screenshot-graphiql](https://github.com/olegabu/starknet-archive-docs/blob/main/Screenshot-graphiql.png?raw=true "GraphQL console")
 
