@@ -1,0 +1,207 @@
+## Quick start
+
+# shift-option/alt-click on a query below to jump to it in the explorer
+# option/alt-click on a field in the explorer to select all subfields
+
+#You can combine queries to return all the data you're looking for in one
+#shot. This example query requests three `Mint` events and all `DEPLOY`
+#transactions together with their inputs in block 100000.
+#
+#You can get results directly from our http endpoint.
+#curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query mint_and_deploy_100000 { event(where: {name: {_eq: \"Mint\"}, transmitter_contract: {_eq: \"0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\"}}, limit: 3) { name arguments { name type value decimal } transaction_hash } block(where: {block_number: {_eq: 100000}}) { transactions(where: {type: {_eq: \"DEPLOY\"}}) { function entry_point_selector inputs { name type value } } }}"}'
+
+query mint_and_deploy_100000 {
+  event(where: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}, limit: 3) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+  block(where: {block_number: {_eq: 100000}}) {
+    transactions(where: {type: {_eq: "DEPLOY"}}) {
+      function
+      entry_point_selector
+      inputs {
+        name
+        type
+        value
+      }
+    }
+  }
+}
+
+## Input and event data decoded as per contract ABI
+
+#Take a look at the transactions and events of block 100000 parsed and
+#decoded. Try this query (which omits most fields for brevity).
+query block_100000 {
+  block(where: {block_number: {_eq: 100000}}) {
+    transactions {
+      function
+      entry_point_selector
+      inputs {
+        name
+        type
+        value
+      }
+      events {
+        name
+        transmitter_contract
+        arguments {
+          name
+          type
+          value
+          decimal
+        }
+      }
+    }
+  }
+}
+
+#Let's get the raw undecoded block for comparison.
+#
+#Try this http call with queries for both the decoded and the raw block 100000.
+#curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"{ block(where: {block_number: {_eq: 100000}}) { transactions { function entry_point_selector inputs { name type value } events { name transmitter_contract arguments { name type value decimal } } } } raw_block_by_pk(block_number: 100000) { raw }}"}'
+query raw_block_100000 {
+  raw_block_by_pk(block_number: 100000) {
+    raw
+  }
+}
+
+## Query for your contract's events
+
+#You are probably interested not in whole blocks but in events emitted by
+#your own contract. Let's narrow down with this query for `Mint` events
+#of contract
+#`0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733`,
+#limited to one result for brevity.
+#
+# Request all `Mint` events with this http call.
+#curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query { event(where: {name: {_eq: \"Mint\"}, transmitter_contract: {_eq: \"0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\"}}) { name arguments { name type value decimal } transaction_hash }}"}'
+
+query mint {
+  event(where: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}, limit: 1) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+}
+
+## Query for values in JSON payloads
+
+#Query for this transaction input `index_and_x` defined as a struct.
+query index_and_x {
+  input(where: {name: {_eq: "index_and_x"}, transaction: {contract_address: {_eq: "0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5"}}}, limit: 1) {
+    value
+  }
+}
+
+#This query digs into json by specifying the path to the second half of
+#the tuple stored in the `values` field.
+query index_and_x_y {
+  input(where: {name: {_eq: "index_and_x"}, transaction: {contract_address: {_eq: "0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5"}}}, limit: 1) {
+    value(path: "values[1]")
+  }
+}
+
+#For illustration, try this query to see our contract's ABI.
+query raw_abi {
+  raw_abi_by_pk(contract_address: "0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5") {
+    raw(path: "[0]")
+  }
+}
+
+## Handling proxy contracts
+
+#This query requests three transactions sent to a proxy contract
+#`0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8`. You
+#see the first `DEPLOY` transaction setting the implementation contract
+#address to
+#`0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704`.
+#Let's add to the query a call to `raw_abi` to get ABIs for both proxy
+#and implementation contracts, for demonstration.
+query proxy {
+  transaction(limit: 3, where: {contract_address: {_eq: "0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8"}}) {
+    inputs {
+      type
+      value
+      name
+    }
+    function
+  }
+  raw_abi(where: {contract_address: {_in: ["0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8", "0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704"]}}) {
+    contract_address
+    raw
+  }
+}
+
+## Aggregation queries
+
+# One approach is to query for all of the values of `amount0`.
+query mint_amount0 {
+  argument(where: {name: {_eq: "amount0"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}, limit: 10) {
+    type
+    value
+    name
+    decimal
+  }
+}
+
+#This query aggregates decimal values of `amount0` arguments of all
+#`Mint` events.
+query TVL {
+  argument_aggregate(where: {name: {_eq: "amount0"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}) {
+    aggregate {
+      sum {
+        decimal
+      }
+      avg {
+        decimal
+      }
+      min {
+        decimal
+      }
+      max {
+        decimal
+      }
+    }
+  }
+}
+
+## Complex queries from database views
+
+#This query calls a custom database view `daily_mint`.
+query daily_mint {
+  daily_mint(limit: 3) {
+    amount0
+    dt
+  }
+}
+
+#Here's another example query that calculates total transactions per day.
+#
+#Request all daily transaction counts to date:
+#curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query {daily_transactions {count date}}"}'
+query daily_transactions {
+  daily_transactions(limit: 3) {
+    count
+    date
+  }
+}
+
+#Try this GraphQL query selecting from `top_functions` database view.
+query top_functions {
+  top_functions(limit: 4) {
+    count
+    name
+  }
+}

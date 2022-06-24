@@ -5,7 +5,7 @@ software that gathers blockchain data, decodes, persists and makes it
 available for analysis with SQL, GraphQL and http queries.
 
 
-* [Approach: decode and write once](#approach--decode-and-write-once)
+* [Approach: write once](#approach--write-once)
 * [Preview and road map](#preview-and-road-map)
 * [Quick start](#quick-start)
 * [Input and event data decoded as per contract ABI](#input-and-event-data-decoded-as-per-contract-abi)
@@ -37,11 +37,11 @@ between the many parts of the process.
 Our approach is a centralised service offering already **decoded and
 normalized data** ready for consumption and interpretation. We run one
 process to gather data from blockchains, decode it and persist in a
-relational database; there are no other secondary indexing or parsing
-processes. Once in the database, the data are indexed and available for
-querying and aggregation with SQL and GraphQL. Developers use the
-up-to-date data right away without the need to write extra code, run
-multiple processes or involve third party indexers.
+relational database; there is no other secondary indexing or parsing.
+Once in the database, the data are already indexed and available for
+querying with SQL and GraphQL. Developers can use the up-to-date data 
+right away without the need to write extra code, run multiple processes
+or involve third party indexers.
 
 ## Preview and road map
 
@@ -142,8 +142,8 @@ decoded. Try this query (which omits most fields for brevity).
 ```
 
 Transaction function and its inputs are decoded using the contract's
-ABI: see the function name `execute`, input `to` as `felt`, `calldata`
-as a three element `felt` array.
+ABI. See the function name `execute` and inputs: `to` as `felt`,
+`calldata` as a three element `felt` array.
 ```json
 {
 "function": "execute",
@@ -178,7 +178,7 @@ as a three element `felt` array.
 ``` 
 
 Events are also decoded: see `Transfer` event and its argument `tokenId`
-as struct `Uint256` with `low` and `high` hex also converted into a
+as struct `Uint256` with `low` and `high` hex, also converted into a
 decimal number.
 ```json
 {
@@ -215,7 +215,7 @@ decimal number.
 ```
 
 Let's get the raw undecoded block for comparison. This query may be
-familiar to you as a common call to the blockchain API. Paste this into
+familiar to you as a common call to a blockchain API. Paste this into
 the GraphQL query window -- you'll see block 100000 as we received it
 from the API, with its transactions and events.
 ```graphql
@@ -266,16 +266,16 @@ Event payload `data` is in bulk as well.
 ## Query with http calls
 
 While GraphQL web IDE is useful to explore blockchain data, can you
-build analytics tools with these queries? Yes, you can make direct http
-calls and consume query results by your applications and front ends.
+build analytics tools with these queries? Yes, cause you can send your
+GraphQL queries to our http endpoint and consume query results by your
+applications and front ends.
 
 Your development process may start with you designing queries in the
 GraphQL console, combining and refining them. Once you figured out how
 to collect all the data you need, you can incorporate these query calls
 into your DApp frontend.
 
-Try this http call with both of the above queries for the decoded and
-the raw block 100000.
+Try this http call with queries for both the decoded and the raw block 100000.
 ```bash
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"{ block(where: {block_number: {_eq: 100000}}) { transactions { function entry_point_selector inputs { name type value } events { name transmitter_contract arguments { name type value decimal } } } } raw_block_by_pk(block_number: 100000) { raw }}"}'
 ```
@@ -416,8 +416,9 @@ For illustration, try this query to see our contract's ABI.
 }
 ```
 
-See the definition of `index_and_x` that shows how to get the second
-half of the tuple `values(x : felt, y : felt)` by `path: "values[1]"`
+The type of `index_and_x` input is struct `IndexAndValues`. See its
+definition in the ABI that shows how to get the second half of the tuple
+`values(x : felt, y : felt)` by `path: "values[1]"`
 ```json
 {
   "data": {
@@ -458,8 +459,8 @@ This query requests three transactions sent to a proxy contract
 see the first `DEPLOY` transaction setting the implementation contract
 address to
 `0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704`.
-Let's use the same query to get ABIs for both proxy and implementation
-contracts, for demonstration.
+Let's add to the query a call to `raw_abi` to get ABIs for both proxy
+and implementation contracts, for demonstration.
 ```graphql
 {
   transaction(limit: 3, where: {contract_address: {_eq: "0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8"}}) {
@@ -590,10 +591,11 @@ But since your data are already in a relational database's table, you
 can run an **aggregation** query over the values, which sums them up and
 returns the final result, without much effort.
 
-That's why the values were converted into decimals: a GraphQL query
-calls a SQL query with an aggregation function `sum` over a numeric
-column; `numeric 78` database types are large enough to support Uint256
-and arithmetic operations over them.
+That's why the values were converted into decimals when they were
+persisted: GraphQL query `argument_aggregate` calls a SQL query with an
+aggregation function `sum` over a numeric column. Database type `numeric
+78` used for the `decimal` column is large enough to support Uint256 and
+arithmetic operations with it.
 
 This query aggregates decimal values of `amount0` arguments of all 
 `Mint` events.
@@ -643,20 +645,21 @@ functions: min, max, avg.
 }
 ```
 
-## Complex queries from custom database views
+## Complex queries from database views
 
 What if filters and aggregation queries still don't give you the desired
-data? You can use then the full power and flexibility of **SQL**: create
-custom database views and functions and query them. 
+data? Then you can use the full power and flexibility of **SQL**: create
+custom database views and functions and query them with GraphQL.
 
 Let's say you want to calculate daily `Mint` volumes of your contract,
-which requires summing over your events each day. A date can be derived
-from the timestamp field in the block containing the event. This is not
-an easy thing to do by a GraphQL query yet trivial in a SQL query. You
-can create a database **view** with the SQL `select` statement returning
-the results desired. This view automatically becomes available as a
-GraphQL query. Just like you can query database tables `block`, `event`
-etc. with GraphQL, you can query the database views you created.
+which requires summing over your events each day. The date can be
+derived from `timestamp` column in the block containing the event. This
+is not an easy thing to do by a GraphQL query yet trivial in a SQL
+query. You can create a database **view** with the SQL `select`
+statement returning the results desired. This view automatically becomes
+available as a GraphQL query. Just like you can query database tables
+`block`, `event` etc. with GraphQL, you can query the database views you
+created.
 
 This query calls a custom database view `daily_mint`.
 ```graphql
@@ -690,7 +693,7 @@ Returns sums of `amount0` arguments of `Mint` events per day:
 }
 ```
 
-The GraphQL query `daily_mint` was created from a database view with the
+GraphQL query `daily_mint` was created from a database view with the
 same name that sums over `Mint` event arguments grouped by day.
 ```sql
 create view daily_mint(amount0, dt) as
@@ -740,8 +743,8 @@ left join block b on t.block_number = b.block_number
 group by dt order by dt desc;
 ```
 
-These queries are available like all other via http calls. Request all
-daily transaction counts to date:
+These queries are available like all the others via http calls. Request
+all daily transaction counts to date:
 ```bash
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query {daily_transactions {count date}}"}'
 ```
@@ -749,7 +752,7 @@ curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query 
 Such statistical queries are useful for constructing charts and
 dashboards. More on this later.
 
-Try this custom query selecting from `top_functions` view.
+Try this GraphQL query selecting from `top_functions` database view.
 ```graphql
 {
   top_functions(limit: 4) {
@@ -791,7 +794,7 @@ create view top_functions (function, ct) as
 select t.function, count(t.function) ct from transaction t group by t.function order by ct desc;
 ```
 
-The above examples show that you can use full fledged SQL queries which
+The above examples show that you can use SQL queries which
 can be rather complex, to aggregate and calculate over any data you're
 interested in.
 
