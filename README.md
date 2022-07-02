@@ -388,6 +388,26 @@ query argument_amount1_lte_10_event_mint {
 }
 ```
 
+Another example query requests all `Transfer` events with a given
+destination address specified by the `to` event argument. Note these
+events come from various contracts as seen in different
+`transmitter_contract` fields, so you can narrow down further if needed.
+```graphql
+query event_transfer_to {
+  event(where: {name: {_eq: "Transfer"}, arguments: {name: {_eq: "to"}, value: {_eq: "0x455eb02b7080a4ad5d2161cb94928acec81a4c9037b40bf106c4c797533c3e5"}}}) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+    transmitter_contract
+  }
+}
+```
+
 ## Query for values in JSON payloads
 
 Some data fields are atomic of type `felt` and are easily accessible by
