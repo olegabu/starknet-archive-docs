@@ -347,6 +347,47 @@ Request all `Mint` events with this http call.
 curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{"query":"query { event(where: {name: {_eq: \"Mint\"}, transmitter_contract: {_eq: \"0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\"}}) { name arguments { name type value decimal } transaction_hash }}"}'
 ```
 
+Obviously, you can add many conditions to the `where` clause selecting
+your events. 
+
+This query returns all `Mint` event whose `amount1` values are less than
+10.
+```graphql
+query event_mint_argument_amount1_lte_10 {
+  event(where: {arguments: {name: {_eq: "amount1"}, decimal: {_lt: "10"}}, name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+}
+```
+
+This query accomplishes the same, but from the other end: it requests
+all arguments satisfying the conditions `amount1` and `< 10` whose event
+is `Mint`, and returns the results together with their event,
+transaction and its block number. 
+```graphql
+query argument_amount1_lte_10_event_mint {
+  argument(where: {decimal: {_lt: "10"}, name: {_eq: "amount1"}, event: {name: {_eq: "Mint"}, transmitter_contract: {_eq: "0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733"}}}) {
+    decimal
+    name
+    type
+    value
+    event {
+      transaction_hash
+      transaction {
+        block_number
+      }
+    }
+  }
+}
+```
+
 ## Query for values in JSON payloads
 
 Some data fields are atomic of type `felt` and are easily accessible by
