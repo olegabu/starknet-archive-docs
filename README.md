@@ -4,7 +4,6 @@
 software that gathers blockchain data, decodes, persists and makes it
 available for analysis with SQL, GraphQL and http queries.
 
-
 * [Approach: write once](#approach--write-once)
 * [Preview and road map](#preview-and-road-map)
 * [Quick start](#quick-start)
@@ -14,8 +13,7 @@ available for analysis with SQL, GraphQL and http queries.
 * [Query for values in JSON payloads](#query-for-values-in-json-payloads)
 * [Handling proxy contracts](#handling-proxy-contracts)
 * [Aggregation queries](#aggregation-queries)
-* [Complex queries from custom database views](#complex-queries-from-custom-database-views)
-
+* [Complex queries from database views](#complex-queries-from-database-views)
 
 ## Approach: write once 
 
