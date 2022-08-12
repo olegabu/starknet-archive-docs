@@ -51,9 +51,9 @@ Please see below example queries demonstrating its basic
 capabilities.
 
 Stay tuned as there's more to come: 
-- [ ] subscriptions to updates to your query results for alerting
-- [ ] direct access to data with sql queries
-- [ ] custom views and functions
+- [x] subscriptions to updates to your query results for alerting
+- [x] direct access to data with sql queries
+- [x] custom views and functions
 - [ ] charts and dashboards
 
 
