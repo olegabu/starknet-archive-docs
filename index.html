@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="None">
+        
+        
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>summary.dev</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/github.min.css">
+
+        <script src="js/jquery-1.10.2.min.js" defer></script>
+        <script src="js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/graphql.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body class="homepage">
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href=".">summary.dev</a>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#starknet-indexer" class="nav-link">Starknet Indexer</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#approach-write-once" class="nav-link">Approach: write once</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#preview-and-road-map" class="nav-link">Preview and road map</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#quick-start" class="nav-link">Quick start</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#input-and-event-data-decoded-as-per-contract-abi" class="nav-link">Input and event data decoded as per contract ABI</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#query-with-http-calls" class="nav-link">Query with http calls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#query-for-your-contracts-events" class="nav-link">Query for your contract's events</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#query-for-values-in-json-payloads" class="nav-link">Query for values in JSON payloads</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#handling-proxy-contracts" class="nav-link">Handling proxy contracts</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#aggregation-queries" class="nav-link">Aggregation queries</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#complex-queries-from-database-views" class="nav-link">Complex queries from database views</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="starknet-indexer">Starknet Indexer</h1>
+<p><strong>Starknet Indexer</strong> and <strong>starknet-archive</strong> are working titles for the
+software that gathers blockchain data, decodes, persists and makes it
+available for analysis with SQL, GraphQL and http queries.</p>
+<ul>
+<li><a href="#approach--write-once">Approach: write once</a></li>
+<li><a href="#preview-and-road-map">Preview and road map</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#input-and-event-data-decoded-as-per-contract-abi">Input and event data decoded as per contract ABI</a></li>
+<li><a href="#query-with-http-calls">Query with http calls</a></li>
+<li><a href="#query-for-your-contract-s-events">Query for your contract's events</a></li>
+<li><a href="#query-for-values-in-json-payloads">Query for values in JSON payloads</a></li>
+<li><a href="#handling-proxy-contracts">Handling proxy contracts</a></li>
+<li><a href="#aggregation-queries">Aggregation queries</a></li>
+<li><a href="#complex-queries-from-database-views">Complex queries from database views</a></li>
+</ul>
+<h2 id="approach-write-once">Approach: write once</h2>
+<p>We aim to solve the problem most DApp developers face: the data their
+smart contracts produce is buried in transaction inputs and events
+scattered in blocks. These data need to be gathered, parsed and
+interpreted for analysis (think an up-to-date TVL) and, finally,
+presented to the end users.</p>
+<p>This problem is often solved by an <strong>indexer</strong>, a service that listens
+to blockchain events, decodes and persists the emitted data. The code to
+interpret events is usually written by the DApp developers themselves
+and run by third parties, sometimes in a decentralized manner.</p>
+<p>While this multi-step approach gets the job done, it requires
+development effort better spent on the DApp itself, and creates friction
+between the many parts of the process.</p>
+<p>Our approach is a centralised service offering already <strong>decoded and
+normalized data</strong> ready for consumption and interpretation. We run one
+process to gather data from blockchains, decode it and persist in a
+relational database; there is no other secondary indexing or parsing.
+Once in the database, the data are already indexed and available for
+querying with SQL and GraphQL. Developers can use the up-to-date data 
+right away without the need to write extra code, run multiple processes
+or involve third party indexers.</p>
+<h2 id="preview-and-road-map">Preview and road map</h2>
+<p>We invite you to a sneak preview of our indexing service available in a
+GraphQL query console at
+<a href="http://starknetindex.com/console">http://starknetindex.com/console</a>.</p>
+<p>Please see below example queries demonstrating its basic
+capabilities.</p>
+<p>Stay tuned as there's more to come: 
+- [ ] subscriptions to updates to your query results for alerting
+- [ ] direct access to data with sql queries
+- [ ] custom views and functions
+- [ ] charts and dashboards</p>
+<h2 id="quick-start">Quick start</h2>
+<p>A <a href="http://starknetindex.com/console">GraphQL console</a> is open to
+developers to query blockchain data for events, transactions and their
+inputs, as well as to filter, aggregate and sum up values. </p>
+<p><img alt="Screenshot-graphiql" src="https://github.com/olegabu/starknet-archive-docs/blob/main/Screenshot-graphiql.png?raw=true" title="GraphQL console" /></p>
+<p>Use the Explorer pane on the left to put together a GraphQL query by
+selecting fields and filter parameters, or write queries directly into
+the middle pane. Read the results in json in the left pane.</p>
+<p>You can combine queries to return all the data you're looking for in one
+shot. This example query requests three <code>Mint</code> events and all <code>DEPLOY</code>
+transactions together with their inputs in block 100000.</p>
+<pre><code class="language-graphql">query mint_and_deploy_100000 {
+  event(where: {name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}, limit: 3) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+  block(where: {block_number: {_eq: 100000}}) {
+    transactions(where: {type: {_eq: &quot;DEPLOY&quot;}}) {
+      function
+      entry_point_selector
+      inputs {
+        name
+        type
+        value
+      }
+    }
+  }
+}
+</code></pre>
+<p>You can get results directly from our http endpoint. Send the query above
+with <code>curl</code>:</p>
+<pre><code class="language-bash">curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{&quot;query&quot;:&quot;query mint_and_deploy_100000 { event(where: {name: {_eq: \&quot;Mint\&quot;}, transmitter_contract: {_eq: \&quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\&quot;}}, limit: 3) { name arguments { name type value decimal } transaction_hash } block(where: {block_number: {_eq: 100000}}) { transactions(where: {type: {_eq: \&quot;DEPLOY\&quot;}}) { function entry_point_selector inputs { name type value } } }}&quot;}'
+</code></pre>
+<h2 id="input-and-event-data-decoded-as-per-contract-abi">Input and event data decoded as per contract ABI</h2>
+<p>Blockchain APIs return transaction inputs and events in bulk arrays of
+binary data which are hard to interpret. We decode these for you using
+appropriate ABIs; special care is taken for proxy contracts (more on
+this below).</p>
+<p>Take a look at the transactions and events of block 100000 parsed and
+decoded. Try this query (which omits most fields for brevity).</p>
+<pre><code class="language-graphql">{
+  block(where: {block_number: {_eq: 100000}}) {
+    transactions {
+      function
+      entry_point_selector
+      inputs {
+        name
+        type
+        value
+      }
+      events {
+        name
+        transmitter_contract
+        arguments {
+          name
+          type
+          value
+          decimal
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>Transaction function and its inputs are decoded using the contract's
+ABI. See the function name <code>execute</code> and inputs: <code>to</code> as <code>felt</code>,
+<code>calldata</code> as a three element <code>felt</code> array.</p>
+<pre><code class="language-json">{
+&quot;function&quot;: &quot;execute&quot;,
+&quot;entry_point_selector&quot;: &quot;0x240060cdb34fcc260f41eac7474ee1d7c80b7e3607daff9ac67c7ea2ebb1c44&quot;,
+&quot;inputs&quot;: [
+  {
+    &quot;name&quot;: &quot;to&quot;,
+    &quot;type&quot;: &quot;felt&quot;,
+    &quot;value&quot;: &quot;0x4bc8ac16658025bff4a3bd0760e84fcf075417a4c55c6fae716efdd8f1ed26c&quot;
+  },
+  {
+    &quot;name&quot;: &quot;selector&quot;,
+    &quot;type&quot;: &quot;felt&quot;,
+    &quot;value&quot;: &quot;0x219209e083275171774dab1df80982e9df2096516f06319c5c6d71ae0a8480c&quot;
+  },
+  {
+    &quot;name&quot;: &quot;calldata&quot;,
+    &quot;type&quot;: &quot;felt[3]&quot;,
+    &quot;value&quot;: [
+      &quot;0x263acca23357479031157e30053fe10598077f24f427ac1b1de85487f5cd124&quot;,
+      &quot;0x204fce5e3e25026110000000&quot;,
+      &quot;0x0&quot;
+    ]
+  },
+  {
+    &quot;name&quot;: &quot;nonce&quot;,
+    &quot;type&quot;: &quot;felt&quot;,
+    &quot;value&quot;: &quot;0x64&quot;
+  }
+]
+}
+</code></pre>
+<p>Events are also decoded: see <code>Transfer</code> event and its argument <code>tokenId</code>
+as struct <code>Uint256</code> with <code>low</code> and <code>high</code> hex, also converted into a
+decimal number.</p>
+<pre><code class="language-json">{
+&quot;events&quot;: [
+  {
+    &quot;name&quot;: &quot;Transfer&quot;,
+    &quot;transmitter_contract&quot;: &quot;0x4e34321e0bce0e4ff8ff0bcb3a9a030d423bca29a9d99cbcdd60edb9a2bf03a&quot;,
+    &quot;arguments&quot;: [
+      {
+        &quot;name&quot;: &quot;from_&quot;,
+        &quot;type&quot;: &quot;felt&quot;,
+        &quot;value&quot;: &quot;0x0&quot;,
+        &quot;decimal&quot;: &quot;0&quot;
+      },
+      {
+        &quot;name&quot;: &quot;to&quot;,
+        &quot;type&quot;: &quot;felt&quot;,
+        &quot;value&quot;: &quot;0x1778c6596d715a8613d0abcbe4fc08c052d208dce3b43eeb6b4dc24ddd62ed9&quot;,
+        &quot;decimal&quot;: &quot;663536632620382607614490239145922341009321511960837718021901264100395462361&quot;
+      },
+      {
+        &quot;name&quot;: &quot;tokenId&quot;,
+        &quot;type&quot;: &quot;Uint256&quot;,
+        &quot;value&quot;: {
+          &quot;low&quot;: &quot;0x3d5b&quot;,
+          &quot;high&quot;: &quot;0x0&quot;
+        },
+        &quot;decimal&quot;: &quot;15707&quot;
+      }
+    ]
+  }
+]
+}
+</code></pre>
+<p>Let's get the raw undecoded block for comparison. This query may be
+familiar to you as a common call to a blockchain API. Paste this into
+the GraphQL query window -- you'll see block 100000 as we received it
+from the API, with its transactions and events.</p>
+<pre><code class="language-graphql">{
+  raw_block_by_pk(block_number: 100000) {
+    raw
+  }
+}
+</code></pre>
+<p>The raw block has transaction inputs as <code>calldata</code> in a bulk array.</p>
+<pre><code class="language-json">{
+&quot;type&quot;: &quot;INVOKE_FUNCTION&quot;,
+&quot;max_fee&quot;: &quot;0x0&quot;,
+&quot;calldata&quot;: [
+  &quot;0x4bc8ac16658025bff4a3bd0760e84fcf075417a4c55c6fae716efdd8f1ed26c&quot;,
+  &quot;0x219209e083275171774dab1df80982e9df2096516f06319c5c6d71ae0a8480c&quot;,
+  &quot;0x3&quot;,
+  &quot;0x263acca23357479031157e30053fe10598077f24f427ac1b1de85487f5cd124&quot;,
+  &quot;0x204fce5e3e25026110000000&quot;,
+  &quot;0x0&quot;,
+  &quot;0x64&quot;
+]
+}
+</code></pre>
+<p>Event payload <code>data</code> is in bulk as well. </p>
+<pre><code class="language-json">{
+&quot;events&quot;: [
+  {
+    &quot;data&quot;: [
+      &quot;0x0&quot;,
+      &quot;0x1778c6596d715a8613d0abcbe4fc08c052d208dce3b43eeb6b4dc24ddd62ed9&quot;,
+      &quot;0x3d5b&quot;,
+      &quot;0x0&quot;
+    ],
+    &quot;keys&quot;: [
+      &quot;0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9&quot;
+    ],
+    &quot;from_address&quot;: &quot;0x4e34321e0bce0e4ff8ff0bcb3a9a030d423bca29a9d99cbcdd60edb9a2bf03a&quot;
+  }
+]
+}
+</code></pre>
+<h2 id="query-with-http-calls">Query with http calls</h2>
+<p>While GraphQL web IDE is useful to explore blockchain data, can you
+build analytics tools with these queries? Yes, cause you can send your
+GraphQL queries to our http endpoint and consume query results by your
+applications and front ends.</p>
+<p>Your development process may start with you designing queries in the
+GraphQL console, combining and refining them. Once you figured out how
+to collect all the data you need, you can incorporate these query calls
+into your DApp frontend.</p>
+<p>Try this http call with queries for both the decoded and the raw block 100000.</p>
+<pre><code class="language-bash">curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{&quot;query&quot;:&quot;{ block(where: {block_number: {_eq: 100000}}) { transactions { function entry_point_selector inputs { name type value } events { name transmitter_contract arguments { name type value decimal } } } } raw_block_by_pk(block_number: 100000) { raw }}&quot;}'
+</code></pre>
+<h2 id="query-for-your-contracts-events">Query for your contract's events</h2>
+<p>You are probably interested not in whole blocks but in events emitted by
+your own contract. Let's narrow down with this query for <code>Mint</code> events
+of contract
+<code>0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733</code>,
+limited to one result for brevity.</p>
+<pre><code class="language-graphql">{
+  event(where: {name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}, limit: 1) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+}
+</code></pre>
+<p>The query returns your event decoded.</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;event&quot;: [
+      {
+        &quot;name&quot;: &quot;Mint&quot;,
+        &quot;arguments&quot;: [
+          {
+            &quot;name&quot;: &quot;sender&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;value&quot;: &quot;0x1ea2f12a70ad6a052f99a49dace349996a8e968a0d6d4e9ec34e0991e6d5e5e&quot;,
+            &quot;decimal&quot;: &quot;866079946690358847859985129991514658898248253189226492476287621475869744734&quot;
+          },
+          {
+            &quot;name&quot;: &quot;amount0&quot;,
+            &quot;type&quot;: &quot;Uint256&quot;,
+            &quot;value&quot;: {
+              &quot;low&quot;: &quot;0x52b7d2dcc80cd2e4000000&quot;,
+              &quot;high&quot;: &quot;0x0&quot;
+            },
+            &quot;decimal&quot;: &quot;100000000000000000000000000&quot;
+          },
+          {
+            &quot;name&quot;: &quot;amount1&quot;,
+            &quot;type&quot;: &quot;Uint256&quot;,
+            &quot;value&quot;: {
+              &quot;low&quot;: &quot;0x2d79883d2000&quot;,
+              &quot;high&quot;: &quot;0x0&quot;
+            },
+            &quot;decimal&quot;: &quot;50000000000000&quot;
+          }
+        ],
+        &quot;transaction_hash&quot;: &quot;0x521e56da1f33412f2f5e81dc585683c47b19783995aa3ebdcd84f5739cea489&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<p>Request all <code>Mint</code> events with this http call.</p>
+<pre><code class="language-bash">curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{&quot;query&quot;:&quot;query { event(where: {name: {_eq: \&quot;Mint\&quot;}, transmitter_contract: {_eq: \&quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733\&quot;}}) { name arguments { name type value decimal } transaction_hash }}&quot;}'
+</code></pre>
+<p>Obviously, you can add many conditions to the <code>where</code> clause selecting
+your events. </p>
+<p>This query returns all <code>Mint</code> event whose <code>amount1</code> values are less than
+10.</p>
+<pre><code class="language-graphql">query event_mint_argument_amount1_lte_10 {
+  event(where: {arguments: {name: {_eq: &quot;amount1&quot;}, decimal: {_lt: &quot;10&quot;}}, name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+  }
+}
+</code></pre>
+<p>This query accomplishes the same, but from the other end: it requests
+all arguments satisfying the conditions <code>amount1</code> and <code>&lt; 10</code> whose event
+is <code>Mint</code>, and returns the results together with their event,
+transaction and its block number. </p>
+<pre><code class="language-graphql">query argument_amount1_lte_10_event_mint {
+  argument(where: {decimal: {_lt: &quot;10&quot;}, name: {_eq: &quot;amount1&quot;}, event: {name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}}) {
+    decimal
+    name
+    type
+    value
+    event {
+      transaction_hash
+      transaction {
+        block_number
+      }
+    }
+  }
+}
+</code></pre>
+<p>Another example query requests all <code>Transfer</code> events with a given
+destination address specified by the <code>to</code> event argument. Note these
+events come from various contracts as seen in different
+<code>transmitter_contract</code> fields, so you can narrow down further if needed.</p>
+<pre><code class="language-graphql">query event_transfer_to {
+  event(where: {name: {_eq: &quot;Transfer&quot;}, arguments: {name: {_eq: &quot;to&quot;}, value: {_eq: &quot;0x455eb02b7080a4ad5d2161cb94928acec81a4c9037b40bf106c4c797533c3e5&quot;}}}) {
+    name
+    arguments {
+      name
+      type
+      value
+      decimal
+    }
+    transaction_hash
+    transmitter_contract
+  }
+}
+</code></pre>
+<h2 id="query-for-values-in-json-payloads">Query for values in JSON payloads</h2>
+<p>Some data fields are atomic of type <code>felt</code> and are easily accessible by
+queries, but some are members of structs and are stored in json values.</p>
+<p>If the data you're interested in lies in a field inside json, you can
+get to it by specifying a path to this field in your query.</p>
+<p>Query for this transaction input <code>index_and_x</code> defined as a struct.</p>
+<pre><code class="language-graphql">{
+  input(where: {name: {_eq: &quot;index_and_x&quot;}, transaction: {contract_address: {_eq: &quot;0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5&quot;}}}, limit: 1) {
+    value
+  }
+}
+</code></pre>
+<p>Returns a value of <code>index_and_x</code> in a json payload with fields <code>index</code> 
+and <code>values</code>.</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;input&quot;: [
+      {
+        &quot;value&quot;: {
+          &quot;index&quot;: &quot;0x39103d23f38a0c91d4eebbc347a5170d00f4022cbb10bfa1def9ad49df782d6&quot;,
+          &quot;values&quot;: [
+            &quot;0x586dbbbd0ba18ce0974f88a19489cca5fcd5ce29e723ad9b7d70e2ad9998a81&quot;,
+            &quot;0x6fefcb8a0e36b801fe98d66dc1513cce456970913b77b8058fea640a69daaa9&quot;
+          ]
+        }
+      }
+    ]
+  }
+}
+</code></pre>
+<p>This query digs into json by specifying the path to the second half of
+the tuple stored in the <code>values</code> field.</p>
+<pre><code class="language-graphql">{
+  input(where: {name: {_eq: &quot;index_and_x&quot;}, transaction: {contract_address: {_eq: &quot;0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5&quot;}}}, limit: 1) {
+    value(path: &quot;values[1]&quot;)
+  }
+}
+</code></pre>
+<p>Returns bare <code>y</code> values of <code>index_and_x</code>.</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;input&quot;: [
+      {
+        &quot;value&quot;: &quot;0x6fefcb8a0e36b801fe98d66dc1513cce456970913b77b8058fea640a69daaa9&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<p>For illustration, try this query to see our contract's ABI.</p>
+<pre><code class="language-graphql">{
+  raw_abi_by_pk(contract_address: &quot;0x579f32b8090d8d789d4b907a8935a75f6de583c9d60893586e24a83d173b6d5&quot;) {
+    raw(path: &quot;[0]&quot;)
+  }
+}
+</code></pre>
+<p>The type of <code>index_and_x</code> input is struct <code>IndexAndValues</code>. See its
+definition in the ABI that shows how to get the second half of the tuple
+<code>values(x : felt, y : felt)</code> by <code>path: "values[1]"</code></p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;raw_abi_by_pk&quot;: {
+      &quot;raw&quot;: {
+        &quot;name&quot;: &quot;IndexAndValues&quot;,
+        &quot;size&quot;: 3,
+        &quot;type&quot;: &quot;struct&quot;,
+        &quot;members&quot;: [
+          {
+            &quot;name&quot;: &quot;index&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;offset&quot;: 0
+          },
+          {
+            &quot;name&quot;: &quot;values&quot;,
+            &quot;type&quot;: &quot;(x : felt, y : felt)&quot;,
+            &quot;offset&quot;: 1
+          }
+        ]
+      }
+    }
+  }
+}
+</code></pre>
+<h2 id="handling-proxy-contracts">Handling proxy contracts</h2>
+<p>Proxy contracts delegate transaction function calls to implementation
+contracts. Transaction input and event data are encoded per
+implementation contract's ABI. Implementation contracts change and so do
+their ABIs. While interpreting proxy contract calls may be challenging,
+the data can still be decoded, by finding the implementation contract
+and its ABI.</p>
+<p>This query requests three transactions sent to a proxy contract
+<code>0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8</code>. You
+see the first <code>DEPLOY</code> transaction setting the implementation contract
+address to
+<code>0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704</code>.
+Let's add to the query a call to <code>raw_abi</code> to get ABIs for both proxy
+and implementation contracts, for demonstration.</p>
+<pre><code class="language-graphql">{
+  transaction(limit: 3, where: {contract_address: {_eq: &quot;0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8&quot;}}) {
+    inputs {
+      type
+      value
+      name
+    }
+    function
+  }
+  raw_abi(where: {contract_address: {_in: [&quot;0x47495c732aa419dfecb43a2a78b4df926fddb251c7de0e88eab90d8a0399cd8&quot;, &quot;0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704&quot;]}}) {
+    contract_address
+    raw
+  }
+}
+</code></pre>
+<p>See that the input <code>call_array</code> of type <code>CallArray</code> is defined in the
+implementation, not the proxy contract's ABI.</p>
+<pre><code class="language-json">{
+&quot;contract_address&quot;: &quot;0x90aa7a9203bff78bfb24f0753c180a33d4bad95b1f4f510b36b00993815704&quot;,
+    &quot;raw&quot;: [
+      {
+        &quot;name&quot;: &quot;CallArray&quot;,
+        &quot;size&quot;: 4,
+        &quot;type&quot;: &quot;struct&quot;,
+        &quot;members&quot;: [
+          {
+            &quot;name&quot;: &quot;to&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;offset&quot;: 0
+          },
+          {
+            &quot;name&quot;: &quot;selector&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;offset&quot;: 1
+          },
+          {
+            &quot;name&quot;: &quot;data_offset&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;offset&quot;: 2
+          },
+          {
+            &quot;name&quot;: &quot;data_len&quot;,
+            &quot;type&quot;: &quot;felt&quot;,
+            &quot;offset&quot;: 3
+          }
+        ]
+      }
+    ]
+}
+</code></pre>
+<p>Yet <code>call_array</code> is still decoded properly as <code>__execute__</code> function's 
+input.</p>
+<pre><code class="language-json">{
+&quot;inputs&quot;: [
+    {
+    &quot;type&quot;: &quot;CallArray[1]&quot;,
+    &quot;value&quot;: [
+      {
+        &quot;to&quot;: &quot;0x4c5327da1f289477951750208c9f97ca0f53afcd256d4363060268750b07f92&quot;,
+        &quot;data_len&quot;: &quot;0x3&quot;,
+        &quot;selector&quot;: &quot;0x219209e083275171774dab1df80982e9df2096516f06319c5c6d71ae0a8480c&quot;,
+        &quot;data_offset&quot;: &quot;0x0&quot;
+      }
+    ],
+    &quot;name&quot;: &quot;call_array&quot;
+    },
+    {
+    &quot;type&quot;: &quot;felt[3]&quot;,
+    &quot;value&quot;: [
+      &quot;0x30295374333e5b9fc34de3ef3822867eaa99af4c856ecf624d34574f8d7d8ea&quot;,
+      &quot;0xffffffffffffffffffffffffffffffff&quot;,
+      &quot;0xffffffffffffffffffffffffffffffff&quot;
+    ],
+    &quot;name&quot;: &quot;calldata&quot;
+    },
+    {
+    &quot;type&quot;: &quot;felt&quot;,
+    &quot;value&quot;: &quot;0x0&quot;,
+    &quot;name&quot;: &quot;nonce&quot;
+    }
+    ],
+    &quot;function&quot;: &quot;__execute__&quot;
+}
+</code></pre>
+<h2 id="aggregation-queries">Aggregation queries</h2>
+<p>You know how to query for all your inputs and events, but how do you
+interpret them? Let's say you want to derive a number from some of your
+events, for example, to calculate Total Value Locked, which is a sum of
+arguments <code>amount0</code> of all <code>Mint</code> events.</p>
+<p>One approach is to query for all of the values of <code>amount0</code>.</p>
+<pre><code class="language-graphql">{
+  argument(where: {name: {_eq: &quot;amount0&quot;}, event: {name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}}, limit: 10) {
+    type
+    value
+    name
+    decimal
+  }
+}
+</code></pre>
+<p>See the values as <code>Uint256</code> struct and also conveniently converted into 
+decimals.</p>
+<pre><code class="language-json">{
+    &quot;type&quot;: &quot;Uint256&quot;,
+    &quot;value&quot;: {
+      &quot;low&quot;: &quot;0x52b7d2dcc80cd2e4000000&quot;,
+      &quot;high&quot;: &quot;0x0&quot;
+    },
+    &quot;name&quot;: &quot;amount0&quot;,
+    &quot;decimal&quot;: &quot;100000000000000000000000000&quot;
+}
+</code></pre>
+<p>You would consume this query's results by your software and sum up the
+values of <code>amount0</code>, like some other indexers let you do. </p>
+<p>But since your data are already in a relational database's table, you
+can run an <strong>aggregation</strong> query over the values, which sums them up and
+returns the final result, without much effort.</p>
+<p>That's why the values were converted into decimals when they were
+persisted: GraphQL query <code>argument_aggregate</code> calls a SQL query with an
+aggregation function <code>sum</code> over a numeric column. Database type <code>numeric
+78</code> used for the <code>decimal</code> column is large enough to support Uint256 and
+arithmetic operations with it.</p>
+<p>This query aggregates decimal values of <code>amount0</code> arguments of all 
+<code>Mint</code> events.</p>
+<pre><code class="language-graphql">{
+  argument_aggregate(where: {name: {_eq: &quot;amount0&quot;}, event: {name: {_eq: &quot;Mint&quot;}, transmitter_contract: {_eq: &quot;0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733&quot;}}}) {
+    aggregate {
+      sum {
+        decimal
+      }
+      avg {
+        decimal
+      }
+      min {
+        decimal
+      }
+      max {
+        decimal
+      }
+    }
+  }
+}
+</code></pre>
+<p>Returns the total sum (TVL) as well as results of other aggregation 
+functions: min, max, avg.</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;argument_aggregate&quot;: {
+      &quot;aggregate&quot;: {
+        &quot;sum&quot;: {
+          &quot;decimal&quot;: &quot;7312519852578770281612328156&quot;
+        },
+        &quot;avg&quot;: {
+          &quot;decimal&quot;: &quot;148767543894266393001838&quot;
+        },
+        &quot;min&quot;: {
+          &quot;decimal&quot;: &quot;25047631971864&quot;
+        },
+        &quot;max&quot;: {
+          &quot;decimal&quot;: &quot;5000000000000000000000000000&quot;
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h2 id="complex-queries-from-database-views">Complex queries from database views</h2>
+<p>What if filters and aggregation queries still don't give you the desired
+data? Then you can use the full power and flexibility of <strong>SQL</strong>: create
+custom database views and functions and query them with GraphQL.</p>
+<p>Let's say you want to calculate daily <code>Mint</code> volumes of your contract,
+which requires summing over your events each day. The date can be
+derived from <code>timestamp</code> column in the block containing the event. This
+is not an easy thing to do by a GraphQL query yet trivial in a SQL
+query. You can create a database <strong>view</strong> with the SQL <code>select</code>
+statement returning the results desired. This view automatically becomes
+available as a GraphQL query. Just like you can query database tables
+<code>block</code>, <code>event</code> etc. with GraphQL, you can query the database views you
+created.</p>
+<p>This query calls a custom database view <code>daily_mint</code>.</p>
+<pre><code class="language-graphql">{
+  daily_mint(limit: 3) {
+    dt
+    mint_amount0
+  }
+}
+</code></pre>
+<p>Returns sums of <code>amount0</code> arguments of <code>Mint</code> events per day:</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;daily_mint&quot;: [
+      {
+        &quot;dt&quot;: &quot;2022-06-08&quot;,
+        &quot;mint_amount0&quot;: &quot;1079024791522862986420035&quot;
+      },
+      {
+        &quot;dt&quot;: &quot;2022-06-07&quot;,
+        &quot;mint_amount0&quot;: &quot;1406494987101656904988874&quot;
+      },
+      {
+        &quot;dt&quot;: &quot;2022-06-06&quot;,
+        &quot;mint_amount0&quot;: &quot;1994302239023862329983776&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<p>GraphQL query <code>daily_mint</code> was created from a database view with the
+same name that sums over <code>Mint</code> event arguments grouped by day.</p>
+<pre><code class="language-sql">create view daily_mint(amount0, dt) as
+select sum(a.decimal) as sum, (to_timestamp((b.&quot;timestamp&quot;)))::date AS dt
+from argument a left join event e on a.event_id = e.id left join transaction t on e.transaction_hash = t.transaction_hash left join block b on t.block_number = b.block_number
+where e.transmitter_contract = '0x4b05cce270364e2e4bf65bde3e9429b50c97ea3443b133442f838045f41e733' and e.name = 'Mint' and a.name = 'amount0'
+group by dt order by dt desc;
+</code></pre>
+<p>Here's another example query that calculates total transactions per day.</p>
+<pre><code class="language-graphql">{
+  daily_transactions(limit: 3) {
+    count
+    date
+  }
+}
+</code></pre>
+<p>We limited its output to the three last days:</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;daily_transactions&quot;: [
+      {
+        &quot;count&quot;: &quot;13370&quot;,
+        &quot;date&quot;: &quot;2022-06-08&quot;
+      },
+      {
+        &quot;count&quot;: &quot;22068&quot;,
+        &quot;date&quot;: &quot;2022-06-07&quot;
+      },
+      {
+        &quot;count&quot;: &quot;47647&quot;,
+        &quot;date&quot;: &quot;2022-06-06&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<p>GraphQL query <code>daily_transactions</code> selects data from this database view:</p>
+<pre><code class="language-sql">create view daily_transactions (count, date) as
+select count(t.transaction_hash), to_timestamp(b.timestamp)::date as dt from transaction as t
+left join block b on t.block_number = b.block_number
+group by dt order by dt desc;
+</code></pre>
+<p>These queries are available like all the others via http calls. Request
+all daily transaction counts to date:</p>
+<pre><code class="language-bash">curl https://starknet-archive.hasura.app/v1/graphql --data-raw '{&quot;query&quot;:&quot;query {daily_transactions {count date}}&quot;}'
+</code></pre>
+<p>Such statistical queries are useful for constructing charts and
+dashboards. More on this later.</p>
+<p>Try this GraphQL query selecting from <code>top_functions</code> database view.</p>
+<pre><code class="language-graphql">{
+  top_functions(limit: 4) {
+    count
+    name
+  }
+}
+</code></pre>
+<p>Returns four functions called the most.</p>
+<pre><code class="language-json">{
+  &quot;data&quot;: {
+    &quot;top_functions&quot;: [
+      {
+        &quot;count&quot;: &quot;2388068&quot;,
+        &quot;name&quot;: &quot;__execute__&quot;
+      },
+      {
+        &quot;count&quot;: &quot;1414978&quot;,
+        &quot;name&quot;: &quot;execute&quot;
+      },
+      {
+        &quot;count&quot;: &quot;536120&quot;,
+        &quot;name&quot;: &quot;constructor&quot;
+      },
+      {
+        &quot;count&quot;: &quot;322249&quot;,
+        &quot;name&quot;: &quot;initialize&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<p>The view was created with this SQL select statement:</p>
+<pre><code class="language-sql">create view top_functions (function, ct) as
+select t.function, count(t.function) ct from transaction t group by t.function order by ct desc;
+</code></pre>
+<p>The above examples show that you can use SQL queries which
+can be rather complex, to aggregate and calculate over any data you're
+interested in.</p>
+<p>In most cases no separate indexer process is needed to interpret your
+data. If however you want to do something that SQL, even with custom
+views and functions cannot, you can query for specific data with GraphQL
+and consume the results by a your own software and deal with it.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js" defer></script>
+        <script src="search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 1.4.0
+Build Date UTC : 2022-10-05 08:49:30.537022+00:00
+-->
